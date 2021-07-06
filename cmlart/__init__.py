@@ -5,7 +5,6 @@
 """
 
 from . import dreamutil
-from . import flowutil
 
 import tensorflow as tf
 import numpy as np
