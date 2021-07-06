@@ -11,73 +11,72 @@ import numpy as np
 import cmlart as cml
 
 
-""" Returns a base model that can be used with `DreamModel`, taken from the InceptionV3 network
 
-  layernames: List of layers used as outputs to the base model (these are what are going to be optimized).
-                See the file `info/IV3_layers.txt` to see valid values
-"""
-def base_IV3(layernames=['mixed1']):
-    # Base model 
-    model_class = tf.keras.applications.InceptionV3(include_top=False, weights='imagenet')
-    
-    # To print out all layers
-    #for layer in model_class.layers:
-    #    print (" -", layer.name)
 
-    # Return a wrapping model that only outputs the given layer names
-    return tf.keras.Model(
-        inputs=model_class.input,
-        outputs=[model_class.get_layer(name).output for name in layernames]
-    )
-
-""" Pre-processes an image for InceptionV3 network, returns a tensor that can be used
+""" Returns a dreaming model based on InceptionNetV3, given certain layer names
 
 """
-def preproc_IV3(img):
-    return tf.convert_to_tensor(
-        tf.keras.applications.inception_v3.preprocess_input(img)
-    )
+def make_IV3(layernames='mixed1'):
 
-""" De-processes an image from InceptionV3 network, returns an image that can be viewed
+    # InceptionNetV3 model
+    IV3 = tf.keras.applications.InceptionV3(include_top=False, weights='imagenet')
 
-"""
-def deproc_IV3(img):
-    return tf.cast(255 * (img + 1.0) / 2.0, tf.uint8)
-
-
-""" Returns a base model that can be used with `DreamModel`, taken from the DenseNet201 network
-
-"""
-def base_DN201(layernames=['mixed1']):
-    # Base model 
-    model_class = tf.keras.applications.DenseNet201(include_top=False, weights='imagenet')
-    
-    # To print out all layers
-    for layer in model_class.layers:
-        print (" -", layer.name)
-
-    # Return a wrapping model that only outputs the given layer names
-    return tf.keras.Model(
-        inputs=model_class.input,
-        outputs=[model_class.get_layer(name).output for name in layernames]
+    # Construct dream model
+    return DreamModel(
+        tf.keras.Model(
+            inputs=IV3.input,
+            outputs=[IV3.get_layer(name).output for name in layernames]
+        ),
+        lambda img: tf.convert_to_tensor(
+            tf.keras.applications.inception_v3.preprocess_input(img)
+        ),
+        lambda img: tf.cast(255 * (img + 1.0) / 2.0, tf.uint8)
     )
 
 
-""" Pre-processes an image for DenseNet201 network, returns a tensor that can be used
+""" Returns a dreaming model based on InceptionNetV3, given certain layer names and weights as a dictionary
 
 """
-def preproc_DN201(img):
-    return tf.convert_to_tensor(
+def make_IV3_map(layerweights={'mixed1': 0.75}):
+
+    # InceptionNetV3 model
+    IV3 = tf.keras.applications.InceptionV3(include_top=False, weights='imagenet')
+    addlayer = tf.keras.layers.Add(inputs=[IV3.get_layer(name).output for name in layerweights])
+    # Construct dream model
+    return DreamModel(
+        tf.keras.Model(
+            inputs=IV3.input,
+            outputs=[addlayer]
+        ),
+        lambda img: tf.convert_to_tensor(
+            tf.keras.applications.inception_v3.preprocess_input(img)
+        ),
+        lambda img: tf.cast(255 * (img + 1.0) / 2.0, tf.uint8)
+    )
+
+
+
+
+
+""" Returns a dreaming model based on DenseNet201, given certain layer names
+
+"""
+def make_DN201(layernames='mixed1'):
+
+    # DenseNet201 model
+    DN201 = tf.keras.applications.DenseNet201(include_top=False, weights='imagenet')
+
+    # Construct dream model
+    return DreamModel(
+        tf.keras.Model(
+            inputs=DN201.input,
+            outputs=[DN201.get_layer(name).output for name in layernames]
+        ),
+        lambda img: tf.convert_to_tensor(
         tf.keras.applications.densenet.preprocess_input(img)
+    ),
+        lambda img: tf.cast(255 * img, tf.uint8)
     )
-
-""" De-processes an image from DenseNet201 network, returns an image that can be viewed
-
-"""
-def deproc_DN201(img):
-    return tf.cast(255 * img, tf.uint8)
-    #return tf.cast(255 * (img + 1.0) / 2.0, tf.uint8)
-
 
 
 """ DreamModel - Model for creating 'dreamy' or 'deep-dream' images from an internal model
@@ -89,8 +88,10 @@ one based on the InceptionV3 network (a great default) by calling the `base_IV3(
 class DreamModel(tf.Module):
 
     # Initialize with the internal model, which is typically a classification model
-    def __init__(self, model):
+    def __init__(self, model, func_preproc=None, func_postproc=None):
         self.model = model
+        self.func_preproc = func_preproc
+        self.func_postproc = func_postproc
 
     # Calculates the loss for a single image
     @tf.function(
@@ -98,7 +99,7 @@ class DreamModel(tf.Module):
             tf.TensorSpec(shape=[None,None,3], dtype=tf.float32),
         )
     )
-    def calc_loss(self, img):
+    def _calc_loss(self, img):
         # Turn into an array of 1
         img = tf.expand_dims(img, axis=0)
 
@@ -117,7 +118,7 @@ class DreamModel(tf.Module):
             tf.TensorSpec(shape=[], dtype=tf.int32),
         )
     )
-    def calc_randroll(self, img, tile_size):
+    def _calc_randroll(self, img, tile_size):
         # Calculate random shift
         shift = tf.random.uniform(shape=[2], minval=-tile_size, maxval=tile_size, dtype=tf.int32)
         img_rolled = tf.roll(img, shift=shift, axis=[0, 1])
@@ -135,6 +136,10 @@ class DreamModel(tf.Module):
         )
     )
     def __call__(self, img, rate=0.01, steps=100, tile_size=256, octaves=0, octave_scale=1.5):
+        # Preprocess input
+        img = self.func_preproc(img)
+
+
         # Capture original shape, for octave computation
         #origimg = img
         origshape = tf.cast(tf.shape(img)[:-1], tf.float32)
@@ -156,7 +161,7 @@ class DreamModel(tf.Module):
             # TODO: Should this be variable depending on the octave?
             for step in range(steps):
                 # Calculate a random roll, to displace 
-                shift, img_rolled = self.calc_randroll(img, tile_size)
+                shift, img_rolled = self._calc_randroll(img, tile_size)
 
                 # Gradients start at 0
                 grads = tf.zeros_like(img_rolled)
@@ -183,7 +188,7 @@ class DreamModel(tf.Module):
                             tile = img_rolled[x:x+tile_size, y:y+tile_size]
 
                             # Calculate loss for that tile
-                            loss = self.calc_loss(tile)
+                            loss = self._calc_loss(tile)
 
                         # Update the gradients
                         grads = grads + tape.gradient(loss, img_rolled)
@@ -202,5 +207,5 @@ class DreamModel(tf.Module):
                 img = tf.clip_by_value(img, -1, 1)
                 #img = tf.clip_by_value(img, 0, 1)
 
-        # Return final image result
-        return img
+        # Return final image result, de-processed
+        return self.func_postproc(img)

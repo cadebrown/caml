@@ -5,6 +5,7 @@
 """
 
 from . import dreamutil
+from . import flowutil
 
 import tensorflow as tf
 import numpy as np
@@ -29,6 +30,31 @@ def resize(img, sz):
 
 ### Video Utilities ###
 
+
+""" cmlart.VideoReader - Iterable
+
+
+"""
+class VideoReader:
+
+    def __init__(self, fname):
+        self.fname = fname
+        # Create OpenCV capture
+        self._cap = cv2.VideoCapture(fname)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        rc, frame = self._cap.read()
+        if not rc:
+            raise StopIteration
+        
+        return frame
+
+
+
+
 class VideoWriter:
 
     def __init__(self, fname, fps=24.0, size=None):
@@ -43,7 +69,8 @@ class VideoWriter:
             if self.size is None:
                 self.size = img.shape[:2]
 
-            self.writer = cv2.VideoWriter(self.fname, None, self.fps, self.size)
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            self.writer = cv2.VideoWriter(self.fname, fourcc, self.fps, self.size[::-1])
 
         # Actually write image
         self.writer.write(np.array(img))

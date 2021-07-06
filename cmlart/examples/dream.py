@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-""" cmlart/dream.py - Commandline utility for 'dreaming' images
+""" cmlart/examples/dream.py - Commandline utility for 'dreaming' images
 
 
-You can run with `python3 -mcmlart.dream [args...]`
+You can run with `python3 -mcmlart.examples.dream [args...]`
 
 For example:
 
 ```
-$ python3 -mcmlart.dream img/firepat.png out.png --steps 256 --rate 0.01 -s 1024 1024 --layers mixed1 --octaves 3 --octave-scale 2.25
+$ python3 -mcmlart.examples.dream img/firepat.png out.png --steps 256 --rate 0.01 -s 1024 1024 --layers mixed1 --octaves 3 --octave-scale 2.25
 
 ```
 
@@ -40,44 +40,32 @@ args = parser.parse_args()
 # NOTE: Metadata has the format: (steps, rate, octaves, octave_scale)
 args.output = args.output.replace(':META:', 's%i_r%.5f_o%i_os%.2f_%s' % (args.steps, args.rate, args.octaves, args.octave_scale, '_'.join(args.layers)))
 
-# Import library
-import cmlart as cml
-import cmlart.dreamutil as du
-
 import tensorflow as tf
+import cmlart
 
-# Get a base classification model to optimize
-model_base = du.base_IV3(args.layers)
+# Dream model
+#dream = cmlart.dreamutil.make_IV3_map()
+dream = cmlart.dreamutil.make_IV3(args.layers)
 
-# Create dreaming model
-model_dream = du.DreamModel(model_base)
 
-# Helper function to run an image and get the result
-def run(img):
-    # Preprocess image 
-    img = du.preproc_IV3(img)
-
-    # Actually apply dream model to it
-    img = model_dream(img, args.rate, args.steps, args.tile_size, args.octaves, 1.5)
-
-    # De-process it back into color space
-    img = du.deproc_IV3(img)
-    return img
+# Helper function to run an image through the dream and get the result, substituting arguments
+def run_dream(img):
+    return dream(img, args.rate, args.steps, args.tile_size, args.octaves, args.octave_scale)
 
 # Now, read the input image
-img = cml.imread(args.input)
+img = cmlart.imread(args.input)
 
 # Resize input, if given the `-s` switch
-if args.size:
-    img = cml.resize(img, args.size)
+if args.size is not None:
+    img = cmlart.resize(img, args.size)
 
 st = time.time()
 
 # Process the image
-img = run(img)
+img = run_dream(img)
 
 et = time.time() - st
 print("took %2.3fs" % (et,))
 
 # Save the image
-cml.imwrite(img, args.output)
+cmlart.imwrite(img, args.output)
