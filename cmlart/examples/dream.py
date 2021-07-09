@@ -27,7 +27,7 @@ parser.add_argument('input', help='input image to dreamify')
 parser.add_argument('output', help='output image location (NOTE: "[[META]]" is replaced with a metadatastring)')
 
 parser.add_argument("-s", "--size", nargs=2, type=int, help="transform size", default=None)
-parser.add_argument("--layers", type=str, nargs='+', help="steps for dreaming", default=['mixed3', 'mixed5'])
+parser.add_argument("--layers", type=str, nargs='+', help="which layers the dreaming accentuates", default=['mixed3', 'mixed5'])
 parser.add_argument("--rate", type=float, help="image delta speed (higher means more changes, lower means less)", default=0.01)
 parser.add_argument("--steps", type=int, help="steps for dreaming", default=100)
 parser.add_argument("--tile-size", type=int, help="tile size for random rolling", default=1024)
@@ -45,7 +45,10 @@ import cmlart
 
 # Dream model
 #dream = cmlart.dreamutil.make_IV3_map()
-dream = cmlart.dreamutil.make_IV3(args.layers)
+#dream = cmlart.dreamutil.make_IV3(args.layers)
+dream = cmlart.dreamutil.make_IRV2(args.layers)
+#dream = cmlart.dreamutil.make_DN201(args.layers)
+#dream = cmlart.dreamutil.make_ENB7(args.layers)
 
 
 # Helper function to run an image through the dream and get the result, substituting arguments

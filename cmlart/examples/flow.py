@@ -91,7 +91,7 @@ for i, img in enumerate(cmlart.VideoReader(args.input)):
         hallu_diff = hallu - img_prev
 
         # Re-map the difference so we 'shift' the hallucinations with the motion of the video
-        hallu_diff = cv2.remap(hallu_diff.numpy(), flow, None, cv2.INTER_CUBIC).astype(np.float32)
+        hallu_diff = cv2.remap(hallu_diff.numpy(), flow, None, cv2.INTER_LINEAR).astype(np.float32)
         print (hallu_diff)
 
         hallu = img + args.feedback * hallu_diff

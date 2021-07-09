@@ -34,6 +34,32 @@ def make_IV3(layernames='mixed1'):
     )
 
 
+
+""" Returns a dreaming model based on InceptionResNetV2, given certain layer names
+
+"""
+def make_IRV2(layernames='mixed1'):
+
+    # InceptionNetV3 model
+    IRV2 = tf.keras.applications.InceptionResNetV2(include_top=False, weights='imagenet')
+
+    for layer in IRV2.layers:
+        print(' *', layer.name)
+
+    # Construct dream model
+    return DreamModel(
+        tf.keras.Model(
+            inputs=IRV2.input,
+            outputs=[IRV2.get_layer(name).output for name in layernames]
+        ),
+        lambda img: tf.convert_to_tensor(
+            tf.keras.applications.inception_resnet_v2.preprocess_input(img)
+        ),
+        lambda img: tf.cast(255 * (img + 1.0) / 2.0, tf.uint8)
+    )
+
+
+
 """ Returns a dreaming model based on InceptionNetV3, given certain layer names and weights as a dictionary
 
 """
@@ -55,13 +81,10 @@ def make_IV3_map(layerweights={'mixed1': 0.75}):
     )
 
 
-
-
-
 """ Returns a dreaming model based on DenseNet201, given certain layer names
 
 """
-def make_DN201(layernames='mixed1'):
+def make_DN201(layernames=['mixed1']):
 
     # DenseNet201 model
     DN201 = tf.keras.applications.DenseNet201(include_top=False, weights='imagenet')
@@ -77,6 +100,24 @@ def make_DN201(layernames='mixed1'):
     ),
         lambda img: tf.cast(255 * img, tf.uint8)
     )
+
+
+""" Returns a dreaming model based on EfficientNetB7, given certain layer names
+
+"""
+def make_ENB7(layernames=['mixed1']):
+
+    # DenseNet201 model
+    ENB7 = tf.keras.applications.EfficientNetB7(include_top=False, weights='imagenet')
+
+    # Construct dream model
+    return DreamModel(
+        tf.keras.Model(
+            inputs=ENB7.input,
+            outputs=[ENB7.get_layer(name).output for name in layernames]
+        )
+    )
+
 
 
 """ DreamModel - Model for creating 'dreamy' or 'deep-dream' images from an internal model
@@ -108,6 +149,11 @@ class DreamModel(tf.Module):
         for act in self.model(img):
             loss += tf.math.reduce_mean(act)
 
+        #pred = tf.one_hot(7, 1000)
+        #loss = tf.zeros(())
+        #for act in self.model(img):
+        #    loss += tf.math.reduce_mean(tf.losses.binary_crossentropy(pred, act))
+
         # Now, see our total loss
         return loss
 
@@ -137,7 +183,8 @@ class DreamModel(tf.Module):
     )
     def __call__(self, img, rate=0.01, steps=100, tile_size=256, octaves=0, octave_scale=1.5):
         # Preprocess input
-        img = self.func_preproc(img)
+        if self.func_preproc is not None:
+            img = self.func_preproc(img)
 
 
         # Capture original shape, for octave computation
@@ -208,4 +255,7 @@ class DreamModel(tf.Module):
                 #img = tf.clip_by_value(img, 0, 1)
 
         # Return final image result, de-processed
-        return self.func_postproc(img)
+        if self.func_postproc is not None:
+            img = self.func_postproc(img)
+
+        return img
