@@ -7,11 +7,12 @@
 
 import argparse
 import time
+import os
 
 parser = argparse.ArgumentParser(description='Dream-ify an image')
 
 parser.add_argument('input', help='input image to dreamify')
-parser.add_argument('output', help='output image location (NOTE: "[[META]]" is replaced with a metadatastring)')
+parser.add_argument('output', help='output image location (NOTE: ":META:" is replaced with a metadatastring)')
 
 parser.add_argument("-s", "--size", nargs=2, type=int, help="transform size", default=None)
 parser.add_argument("--layers", type=str, nargs='+', help="steps for dreaming", default=['mixed3', 'mixed5'])
@@ -20,7 +21,10 @@ parser.add_argument("--steps", type=int, help="steps for dreaming", default=100)
 parser.add_argument("--tile-size", type=int, help="tile size for random rolling", default=1024)
 parser.add_argument("--octaves", type=int, help="number of 'octaves' the image goes through, gradually upsizing", default=0)
 parser.add_argument("--octave-scale", type=float, help="the scale between each octave (between 1 and 2 is normally good)", default=1.5)
-
+parser.add_argument('--preview', action='store_true', help="If given, preview the current frame")
+parser.add_argument('--fps', type=float, default=30.0, help="Frames per second of the footage")
+parser.add_argument('--len', type=float, default=15.0, help="Length of the output, in seconds")
+parser.add_argument('--zoom-rate', type=float, default=1.8, help="The rate it zooms, per second. For example, 2.0 sooms in 2x per second")
 args = parser.parse_args()
 
 import tensorflow as tf
@@ -46,33 +50,44 @@ else:
 
 st = time.time()
 
-fps = 24.0
-
-zoom_per_sec = 1.4
+fps = args.fps
+#fps = 8.0
+dur = args.len
+zoom_per_sec = args.zoom_rate
 
 # Output video
-out = cmlart.VideoWriter(args.output, fps)
+#out = cmlart.VideoWriter(args.output, fps)
 
-for i in range(24 * 16):
+try:
+    os.mkdir(args.output[:args.output.rfind('/')])
+except:
+    pass
+
+
+for i in range(int(fps * dur)):
     t = i / fps
 
-    print("on frame %i" % (i,))
+    outname = args.output.replace(':META:', '%05i' % (i,))
+
+    print("on frame %i/%i" % (i, int(fps * dur)))
 
     # Size change
     sizefac = zoom_per_sec ** (-1 / fps)
-    hh = int((1 - sizefac) * args.size[0] // 2)
-    ww = int((1 - sizefac) * args.size[1] // 2)
+    hh = int((1.0 - sizefac) * args.size[0] // 2)
+    ww = int((1.0 - sizefac) * args.size[1] // 2)
 
     # Crop to center, upscale
     img = cmlart.resize(img[hh:-hh, ww:-ww, ...], args.size)
 
     # Now, run the image out
     img = run_dream(img)
-    out.add(img)
+    
+    #out.add(img)
+    cmlart.imwrite(img, outname)
 
-
-    cv2.imshow("img", img.numpy())
-    cv2.waitKey(1)
+    if args.preview:
+        cv2.imshow("img", img.numpy())
+        cv2.waitKey(1)
 
 
 

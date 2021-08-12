@@ -13,11 +13,14 @@ If you don't want to install this package, you can run export the path to `PYTHO
 
 
 
-
+python3 -mcmlart.examples.dreamanim img/firepat_1080p.png SDM_END.mp4 -s 1080 1920 --layers mixed8 --rate 0.012 --steps 128 --octaves 3 --octave-scale 2.25 --preview # fps=8#
 
 ## Links
 
 https://github.com/NVIDIA/flownet2-pytorch
 
 https://github.com/nerdyrodent/VQGAN-CLIP
+
+
+
 
