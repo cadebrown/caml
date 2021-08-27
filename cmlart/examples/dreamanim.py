@@ -25,6 +25,7 @@ parser.add_argument('--preview', action='store_true', help="If given, preview th
 parser.add_argument('--fps', type=float, default=30.0, help="Frames per second of the footage")
 parser.add_argument('--len', type=float, default=15.0, help="Length of the output, in seconds")
 parser.add_argument('--zoom-rate', type=float, default=1.8, help="The rate it zooms, per second. For example, 2.0 sooms in 2x per second")
+#parser.add_argument('--start-frame', type=int, default=0, help="The frame to start computing on")
 args = parser.parse_args()
 
 import tensorflow as tf
@@ -91,4 +92,4 @@ for i in range(int(fps * dur)):
 
 
 
-out.writer.release()
+#out.writer.release()
