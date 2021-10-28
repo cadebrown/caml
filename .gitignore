@@ -8,5 +8,7 @@ __pycache__
 
 *.png
 *.jpg
+*.webp
 
 !img/*
+

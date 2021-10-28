@@ -26,6 +26,7 @@ parser.add_argument('--fps', type=float, default=30.0, help="Frames per second o
 parser.add_argument('--len', type=float, default=15.0, help="Length of the output, in seconds")
 parser.add_argument('--zoom-rate', type=float, default=1.8, help="The rate it zooms, per second. For example, 2.0 sooms in 2x per second")
 #parser.add_argument('--start-frame', type=int, default=0, help="The frame to start computing on")
+
 args = parser.parse_args()
 
 import tensorflow as tf
@@ -58,16 +59,15 @@ zoom_per_sec = args.zoom_rate
 
 # Output video
 #out = cmlart.VideoWriter(args.output, fps)
-
 try:
     os.mkdir(args.output[:args.output.rfind('/')])
 except:
     pass
 
+print ("-- STARTING --")
 
 for i in range(int(fps * dur)):
     t = i / fps
-
     outname = args.output.replace(':META:', '%05i' % (i,))
 
     print("on frame %i/%i" % (i, int(fps * dur)))
@@ -80,13 +80,16 @@ for i in range(int(fps * dur)):
     # Crop to center, upscale
     img = cmlart.resize(img[hh:-hh, ww:-ww, ...], args.size)
 
+    print ("  dreaming...")
     # Now, run the image out
     img = run_dream(img)
     
+    print ("  writing...")
     #out.add(img)
     cmlart.imwrite(img, outname)
 
     if args.preview:
+        print ("  showing...")
         cv2.imshow("img", img.numpy())
         cv2.waitKey(1)
 

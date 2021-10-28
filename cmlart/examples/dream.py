@@ -44,12 +44,10 @@ import tensorflow as tf
 import cmlart
 
 # Dream model
-#dream = cmlart.dreamutil.make_IV3_map()
-#dream = cmlart.dreamutil.make_IV3(args.layers)
-dream = cmlart.dreamutil.make_IRV2(args.layers)
+dream = cmlart.dreamutil.make_IV3(args.layers)
+#dream = cmlart.dreamutil.make_IRV2(args.layers)
 #dream = cmlart.dreamutil.make_DN201(args.layers)
 #dream = cmlart.dreamutil.make_ENB7(args.layers)
-
 
 # Helper function to run an image through the dream and get the result, substituting arguments
 def run_dream(img):
