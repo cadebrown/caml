@@ -17,7 +17,7 @@ If you don't want to install this package, you can run export the path to `PYTHO
 
 ```shell
 # create a video
-$ python3 -mcmlart.examples.dream img/ddd.jpg out_:META:.webp --steps 64 --rate 0.0025 -s 512 512 --layers mixed3 --octaves 2 --octave-scale 1.4
+$ python3 -mcmlart.examples.dreamanim img/ddd.jpg out0/:META:.webp --steps 16 --rate 0.0025 -s 512 512 --layers mixed1 --octaves 1 --octave-scale 1.5 --fps 15.0 --len 10.0
 ```
 
 ```shell
